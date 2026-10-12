@@ -14,6 +14,9 @@
 <!-- Google AdSense -->
 <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-3187612261157846"
      crossorigin="anonymous"></script>
+<script type="application/ld+json">
+{"@context": "https://schema.org", "@type": "FAQPage", "mainEntity": [{"@type": "Question", "name": "How do I remove the background from a photo for free?", "acceptedAnswer": {"@type": "Answer", "text": "Upload your photo to MergeMint's free Background Remover. On-device AI cuts out the subject automatically and you download a transparent PNG — no sign-up."}}, {"@type": "Question", "name": "Do I need to download an app to remove photo backgrounds?", "acceptedAnswer": {"@type": "Answer", "text": "No. Everything runs in your browser. The AI model (about 84 MB) downloads once on first use; after that the tool works fully offline."}}, {"@type": "Question", "name": "Which image formats does the Background Remover support?", "acceptedAnswer": {"@type": "Answer", "text": "PNG, JPG/JPEG and WebP images are supported, and the result is always a transparent PNG you can use anywhere."}}, {"@type": "Question", "name": "Are my photos uploaded to a server?", "acceptedAnswer": {"@type": "Answer", "text": "Never. The AI runs on your own device via WebAssembly, so your photos stay private and there's no upload wait."}}, {"@type": "Question", "name": "Why is the first background removal slow?", "acceptedAnswer": {"@type": "Answer", "text": "The first run downloads the AI model (one-time, ~84 MB). Every removal after that is fast because the model is cached in your browser."}}]}
+</script>
 </head>
 <body>
 <div class="aurora" aria-hidden="true"><span class="a1"></span><span class="a2"></span><span class="a3"></span></div>
@@ -46,7 +49,7 @@
     <div class="options" id="optionsBox" style="display:none">
       <label>Your photo</label>
       <div class="photo-frame"><img id="previewImg" alt="Original photo preview"></div>
-      <p class="hint">The AI model (~40&nbsp;MB) downloads once on first use, then works offline. Your photo never leaves your device.</p>
+      <p class="hint">The AI model (~84&nbsp;MB) downloads once on first use, then works offline. Your photo never leaves your device.</p>
     </div>
     <div class="alert" id="alertBox"></div>
     <div class="action-row">
@@ -69,6 +72,31 @@
   <!-- ADSENSE PLACEHOLDER: sidebar/in-content ad on tool page. Paste your AdSense ad code here. -->
 
     <p class="hint" style="text-align:center"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="10" width="14" height="10" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/></svg>  Files are processed locally in your browser and never uploaded anywhere.</p>
+
+<section class="faq" aria-label="Frequently asked questions">
+  <h2>Frequently asked questions</h2>
+
+  <details class="faq-item" open>
+    <summary>How do I remove the background from a photo for free?</summary>
+    <p>Upload your photo to MergeMint&#x27;s free Background Remover. On-device AI cuts out the subject automatically and you download a transparent PNG — no sign-up.</p>
+  </details>
+  <details class="faq-item">
+    <summary>Do I need to download an app to remove photo backgrounds?</summary>
+    <p>No. Everything runs in your browser. The AI model (about 84 MB) downloads once on first use; after that the tool works fully offline.</p>
+  </details>
+  <details class="faq-item">
+    <summary>Which image formats does the Background Remover support?</summary>
+    <p>PNG, JPG/JPEG and WebP images are supported, and the result is always a transparent PNG you can use anywhere.</p>
+  </details>
+  <details class="faq-item">
+    <summary>Are my photos uploaded to a server?</summary>
+    <p>Never. The AI runs on your own device via WebAssembly, so your photos stay private and there&#x27;s no upload wait.</p>
+  </details>
+  <details class="faq-item">
+    <summary>Why is the first background removal slow?</summary>
+    <p>The first run downloads the AI model (one-time, ~84 MB). Every removal after that is fast because the model is cached in your browser.</p>
+  </details>
+</section>
 </main>
 <!-- ADSENSE PLACEHOLDER: footer banner above the footer. Paste your AdSense ad code here. -->
 
