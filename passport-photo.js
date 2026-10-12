@@ -16,6 +16,7 @@
   var zoom = 1, offX = 0, offY = 0;   // pan/zoom state (stage px)
   var dragging = false, dragLast = null;
   var singleBlob = null, sheetBlob = null;
+  var objUrl = null;       // blob URL for the stage preview (revoked on reset/new file)
 
   var fileInput = Mint.el("fileInput");
   var fileList = Mint.el("fileList");
@@ -65,12 +66,13 @@
     var im = new Image();
     im.onload = function () {
       file = f; img = im; natW = im.naturalWidth; natH = im.naturalHeight;
-      URL.revokeObjectURL(url);
+      if (objUrl) URL.revokeObjectURL(objUrl);
+      objUrl = url;
       fileList.innerHTML = "";
       fileList.appendChild(Mint.fileRow(file, 0, { onRemove: resetAll }));
       pageInfo.style.display = "";
       pageInfo.textContent = "🖼️ “" + file.name + "” — " + natW + "×" + natH + " px.";
-      stageImg.src = im.src;
+      stageImg.src = objUrl;
       optionsBox.style.display = "";
       makeBtn.disabled = false;
       resultBox.style.display = "none";
@@ -79,12 +81,14 @@
       Mint.el("zoomLabel").textContent = "100%";
       layoutCrop();
     };
-    im.onerror = function () { Mint.showAlert("alertBox", "error", "Could not read that image."); };
+    im.onerror = function () { URL.revokeObjectURL(url); Mint.showAlert("alertBox", "error", "Could not read that image."); };
     im.src = url;
   }
 
   function resetAll() {
     file = null; img = null;
+    if (objUrl) { URL.revokeObjectURL(objUrl); objUrl = null; }
+    stageImg.removeAttribute("src");
     fileList.innerHTML = "";
     pageInfo.style.display = "none";
     optionsBox.style.display = "none";

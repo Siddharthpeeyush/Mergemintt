@@ -627,7 +627,7 @@ img { max-width: 100%; }
 .crop-stage{position:relative;overflow:hidden;border:1.5px solid var(--line-soft);border-radius:12px;background:var(--input-bg);height:340px;cursor:grab;touch-action:none;user-select:none}
 .crop-stage:active{cursor:grabbing}
 .crop-stage img{position:absolute;top:0;left:0;max-width:none;pointer-events:none}
-.crop-box{position:absolute;border:2.5px solid #2fd08c;border-radius:4px;box-shadow:0 0 0 9999px rgba(0,0,0,.45);pointer-events:none}
+.crop-box{position:absolute;border:2.5px solid #2fd08c;border-radius:4px;box-shadow:0 0 0 9999px rgba(0,0,0,.45);pointer-events:auto;cursor:move}
 .photo-results{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin:12px 0}
 @media (max-width:640px){.photo-results{grid-template-columns:1fr}}
 
