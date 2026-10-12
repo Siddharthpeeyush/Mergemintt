@@ -99,37 +99,34 @@
 
   function sizeSpec() { return SIZES[Mint.el("sizeSel").value] || SIZES.in3545; }
 
-  var SHEET_W = 1200, SHEET_H = 1800;  // 4x6" at 300 DPI
+  var SHEET_GAP = 30;   // px at 300 DPI (~2.5mm) between copies, so they can be cut apart
+  var MAX_COPIES = 8;
 
-  function maxSheetCols() {
-    var spec = sizeSpec();
-    return Math.max(1, Math.floor(SHEET_W / mmToPx(spec.wMm)));
-  }
-  function maxSheetRows() {
-    var spec = sizeSpec();
-    return Math.max(1, Math.floor(SHEET_H / mmToPx(spec.hMm)));
-  }
-  // rebuild the columns/rows options for the current photo size; keep the
-  // user's choice when it still fits, otherwise default to the max grid
-  function buildSheetOptions() {
-    var keepC = parseInt(Mint.el("sheetCols").value, 10) || 0;
-    var keepR = parseInt(Mint.el("sheetRows").value, 10) || 0;
-    var mc = maxSheetCols(), mr = maxSheetRows();
-    var cs = Mint.el("sheetCols"), rs = Mint.el("sheetRows");
-    cs.innerHTML = ""; rs.innerHTML = "";
-    for (var c = 1; c <= mc; c++) {
+  function fillSheetSelect(el, max, keep, singular, plural) {
+    var cur = parseInt(el.value, 10) || 0;
+    el.innerHTML = "";
+    for (var i = 1; i <= max; i++) {
       var o = document.createElement("option");
-      o.value = c; o.textContent = c + (c === 1 ? " column" : " columns");
-      cs.appendChild(o);
+      o.value = i;
+      o.textContent = i + (i === 1 ? " " + singular : " " + plural);
+      el.appendChild(o);
     }
-    for (var r = 1; r <= mr; r++) {
-      var p = document.createElement("option");
-      p.value = r; p.textContent = r + (r === 1 ? " row" : " rows");
-      rs.appendChild(p);
-    }
-    cs.value = (keepC >= 1 && keepC <= mc) ? keepC : mc;
-    rs.value = (keepR >= 1 && keepR <= mr) ? keepR : mr;
+    el.value = (cur >= 1 && cur <= max) ? cur : Math.min(keep, max);
   }
+  // full rebuild (photo size changed): default 2 columns x 3 rows
+  function buildSheetOptions() {
+    fillSheetSelect(Mint.el("sheetCols"), 4, 2, "column", "columns");
+    var c = parseInt(Mint.el("sheetCols").value, 10) || 2;
+    fillSheetSelect(Mint.el("sheetRows"), Math.min(4, Math.floor(MAX_COPIES / c)), 3, "row", "rows");
+  }
+  Mint.el("sheetCols").addEventListener("change", function () {
+    var c = parseInt(this.value, 10) || 1;
+    fillSheetSelect(Mint.el("sheetRows"), Math.min(4, Math.floor(MAX_COPIES / c)), 99, "row", "rows");
+  });
+  Mint.el("sheetRows").addEventListener("change", function () {
+    var r = parseInt(this.value, 10) || 1;
+    fillSheetSelect(Mint.el("sheetCols"), Math.min(4, Math.floor(MAX_COPIES / r)), 99, "column", "columns");
+  });
 
   // Position the fixed-aspect crop box; fit image to cover it.
   function layoutCrop() {
@@ -211,26 +208,28 @@
       x.fillRect(0, 0, tw, th);
       x.drawImage(img, sx, sy, sw, sh, 0, 0, tw, th);
 
-      // 4x6" print sheet at 300 DPI, user-chosen grid, centered
-      var sheetW = SHEET_W, sheetHpx = SHEET_H;
+      // print sheet at 300 DPI: exactly the chosen grid plus cutting gaps
+      var cols = parseInt(Mint.el("sheetCols").value, 10) || 1;
+      var rows = parseInt(Mint.el("sheetRows").value, 10) || 1;
+      if (cols * rows > MAX_COPIES) { cols = 2; rows = 3; }  // safety net
+      var sheetW = cols * tw + (cols - 1) * SHEET_GAP;
+      var sheetHpx = rows * th + (rows - 1) * SHEET_GAP;
       var sh2 = document.createElement("canvas");
       sh2.width = sheetW; sh2.height = sheetHpx;
       var sx2 = sh2.getContext("2d");
       sx2.fillStyle = "#ffffff";
       sx2.fillRect(0, 0, sheetW, sheetHpx);
-      var cols = Math.min(maxSheetCols(), parseInt(Mint.el("sheetCols").value, 10) || 1);
-      var rows = Math.min(maxSheetRows(), parseInt(Mint.el("sheetRows").value, 10) || 1);
-      var gx = (sheetW - cols * tw) / 2, gy = (sheetHpx - rows * th) / 2;
       for (var r = 0; r < rows; r++) {
         for (var q = 0; q < cols; q++) {
-          sx2.drawImage(c, gx + q * tw, gy + r * th);
+          sx2.drawImage(c, q * (tw + SHEET_GAP), r * (th + SHEET_GAP));
         }
       }
 
       Mint.el("singleImg").src = c.toDataURL("image/png");
       Mint.el("sheetImg").src = sh2.toDataURL("image/png");
+      var inW = (sheetW / DPI).toFixed(1), inH = (sheetHpx / DPI).toFixed(1);
       Mint.el("sheetNote").textContent = (cols * rows) + " " + ((cols * rows) === 1 ? "copy" : "copies") +
-        " (" + cols + "×" + rows + ") on a 4×6″ sheet — print at 100% scale (300 DPI).";
+        " (" + cols + "×" + rows + ") on a " + inW + "×" + inH + "″ sheet — print at 100% scale (300 DPI).";
 
       c.toBlob(function (b1) {
         sh2.toBlob(function (b2) {
@@ -256,7 +255,7 @@
     if (singleBlob) Mint.downloadBlob(singleBlob, "passport-photo.png");
   });
   Mint.el("dlSheet").addEventListener("click", function () {
-    if (sheetBlob) Mint.downloadBlob(sheetBlob, "passport-photos-4x6.png");
+    if (sheetBlob) Mint.downloadBlob(sheetBlob, "passport-photos-sheet.png");
   });
 
   window.addEventListener("resize", function () { if (img) layoutCrop(); });
