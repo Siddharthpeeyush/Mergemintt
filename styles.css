@@ -656,3 +656,14 @@ img { max-width: 100%; }
 .text-overlay:hover{border-color:#2fd08c}
 .text-overlay:active{cursor:grabbing}
 .text-stage{height:auto}
+
+/* SEO FAQ sections (tool pages) */
+.faq{margin:30px auto 10px;max-width:760px}
+.faq h2{font-size:20px;margin:0 0 12px;letter-spacing:-.01em}
+.faq-item{border:1px solid var(--line-soft);border-radius:12px;margin-bottom:8px;background:var(--card);overflow:hidden}
+.faq-item summary{cursor:pointer;padding:14px 16px;font-weight:600;list-style:none;display:flex;justify-content:space-between;align-items:center;gap:12px}
+.faq-item summary::-webkit-details-marker{display:none}
+.faq-item summary::after{content:"+";color:var(--brand-deep);font-weight:700;font-size:18px;flex:none}
+.faq-item[open] summary::after{content:"\2013"}
+.faq-item summary:hover{color:var(--brand-ink)}
+.faq-item p{padding:0 16px 14px;margin:0;color:var(--muted);line-height:1.65;font-size:14.5px}
