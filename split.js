@@ -25,7 +25,9 @@
 
   document.querySelectorAll('input[name="mode"]').forEach(function (r) {
     r.addEventListener("change", function () {
-      rangeBox.style.display = (document.querySelector('input[name="mode"]:checked').value === "range") ? "" : "none";
+      var mode = document.querySelector('input[name="mode"]:checked').value;
+      rangeBox.style.display = mode === "range" ? "" : "none";
+      Mint.el("chunkBox").style.display = mode === "chunks" ? "" : "none";
     });
   });
 
@@ -118,27 +120,52 @@
         splitBtn.disabled = false;
       });
     } else {
-      // Burst into single pages -> ZIP
+      // Burst / chunks -> ZIP
       if (typeof JSZip === "undefined") {
         Mint.showAlert("alertBox", "error", "The ZIP library failed to load. Check your connection and reload.");
         splitBtn.disabled = false;
         return;
       }
-      Mint.setProgress("progressWrap", 10, "Splitting into " + pageCount + " files…");
+      var groups = []; // each group: {name, indices}
+      if (mode === "pages") {
+        for (var gi = 0; gi < pageCount; gi++) {
+          groups.push({ name: "page-" + (gi + 1) + ".pdf", indices: [gi] });
+        }
+      } else {
+        // chunks: every N pages
+        var n = parseInt(Mint.el("chunkSize").value, 10);
+        if (isNaN(n) || n < 1) {
+          Mint.showAlert("alertBox", "error", "Enter a valid number of pages per file (1 or more).");
+          splitBtn.disabled = false;
+          return;
+        }
+        if (n >= pageCount) {
+          Mint.showAlert("alertBox", "error", "Pages per file must be less than the total page count (" + pageCount + ").");
+          splitBtn.disabled = false;
+          return;
+        }
+        var g = 0;
+        for (var s = 0; s < pageCount; s += n) {
+          g++;
+          var idxs = [];
+          for (var j = s; j < Math.min(s + n, pageCount); j++) idxs.push(j);
+          groups.push({ name: "part-" + g + ".pdf", indices: idxs });
+        }
+      }
+      Mint.setProgress("progressWrap", 10, "Splitting into " + groups.length + " files…");
       PDFLib.PDFDocument.load(fileBytes).then(function (src) {
         var zip = new JSZip();
         var chain = Promise.resolve();
-        var indices = src.getPageIndices();
-        indices.forEach(function (idx, i) {
+        groups.forEach(function (grp, i) {
           chain = chain.then(function () {
-            Mint.setProgress("progressWrap", Math.round(((i + 1) / indices.length) * 90),
-              "Page " + (i + 1) + " of " + indices.length + "…");
+            Mint.setProgress("progressWrap", Math.round(((i + 1) / groups.length) * 90),
+              "File " + (i + 1) + " of " + groups.length + "…");
             return PDFLib.PDFDocument.create().then(function (out) {
-              return out.copyPages(src, [idx]).then(function (cp) {
-                out.addPage(cp[0]);
+              return out.copyPages(src, grp.indices).then(function (cp) {
+                cp.forEach(function (p) { out.addPage(p); });
                 return out.save();
               }).then(function (bytes) {
-                zip.file("page-" + (i + 1) + ".pdf", bytes);
+                zip.file(grp.name, bytes);
               });
             });
           });
@@ -149,8 +176,8 @@
         });
       }).then(function (blob) {
         resultBlob = blob;
-        resultName = "mergemint-split-pages.zip";
-        finish(pageCount + " single-page PDFs", blob.size);
+        resultName = "mergemint-split.zip";
+        finish(groups.length + (mode === "pages" ? " single-page PDFs" : " files"), blob.size);
       }).catch(function (err) {
         Mint.showAlert("alertBox", "error", err.message || "Splitting failed.");
       }).then(function () {
