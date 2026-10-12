@@ -564,3 +564,38 @@ img { max-width: 100%; }
   .topbar { padding: 0 12px; }
   .crumbs .here { max-width: 38vw; }
 }
+
+/* ============ Organize Pages: thumbnail grid ============ */
+.thumb-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 14px; margin: 20px 0 6px; }
+.thumb-card {
+  position: relative; border: 1.5px solid var(--line); border-radius: 12px;
+  background: var(--card); overflow: hidden; cursor: grab;
+  transition: transform .15s, box-shadow .15s, opacity .15s;
+}
+.thumb-card:hover { transform: translateY(-2px); box-shadow: var(--glass-shadow); }
+.thumb-card.dragging { opacity: .35; cursor: grabbing; }
+.thumb-card > img { width: 100%; aspect-ratio: 3/4; object-fit: contain; background: #fff; display: block; pointer-events: none; }
+.thumb-card.deleted > img { filter: grayscale(1); opacity: .45; }
+.thumb-badge {
+  position: absolute; top: 8px; left: 8px; z-index: 2;
+  font-size: 11px; font-weight: 700; letter-spacing: .04em; text-transform: uppercase;
+  background: var(--danger); color: #fff; border-radius: 99px; padding: 3px 10px;
+}
+.thumb-bar { display: flex; align-items: center; gap: 6px; padding: 8px 10px; border-top: 1px solid var(--line-soft); }
+.thumb-num { font-weight: 700; font-size: 13px; margin-right: auto; }
+.thumb-btn {
+  width: 30px; height: 30px; border-radius: 8px; border: 1px solid var(--line-soft);
+  background: var(--card); color: var(--muted); cursor: pointer;
+  display: inline-flex; align-items: center; justify-content: center; font-family: inherit;
+}
+.thumb-btn:hover { border-color: var(--brand); color: var(--brand-deep); }
+.thumb-btn.restore { color: var(--brand-deep); border-color: var(--brand); }
+.thumb-btn svg { width: 15px; height: 15px; }
+
+/* ============ Remove Metadata table ============ */
+.meta-table { width: 100%; border-collapse: collapse; margin: 4px 0; font-size: 14px; }
+.meta-table td { padding: 9px 12px; border-bottom: 1px solid var(--line-soft); }
+.meta-table tr:last-child td { border-bottom: 0; }
+.meta-table td:first-child { font-weight: 600; width: 140px; color: var(--muted); }
+.meta-found { font-weight: 600; }
+.meta-empty { color: var(--faint); }
