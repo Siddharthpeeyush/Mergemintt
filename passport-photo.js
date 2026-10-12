@@ -99,6 +99,38 @@
 
   function sizeSpec() { return SIZES[Mint.el("sizeSel").value] || SIZES.in3545; }
 
+  var SHEET_W = 1200, SHEET_H = 1800;  // 4x6" at 300 DPI
+
+  function maxSheetCols() {
+    var spec = sizeSpec();
+    return Math.max(1, Math.floor(SHEET_W / mmToPx(spec.wMm)));
+  }
+  function maxSheetRows() {
+    var spec = sizeSpec();
+    return Math.max(1, Math.floor(SHEET_H / mmToPx(spec.hMm)));
+  }
+  // rebuild the columns/rows options for the current photo size; keep the
+  // user's choice when it still fits, otherwise default to the max grid
+  function buildSheetOptions() {
+    var keepC = parseInt(Mint.el("sheetCols").value, 10) || 0;
+    var keepR = parseInt(Mint.el("sheetRows").value, 10) || 0;
+    var mc = maxSheetCols(), mr = maxSheetRows();
+    var cs = Mint.el("sheetCols"), rs = Mint.el("sheetRows");
+    cs.innerHTML = ""; rs.innerHTML = "";
+    for (var c = 1; c <= mc; c++) {
+      var o = document.createElement("option");
+      o.value = c; o.textContent = c + (c === 1 ? " column" : " columns");
+      cs.appendChild(o);
+    }
+    for (var r = 1; r <= mr; r++) {
+      var p = document.createElement("option");
+      p.value = r; p.textContent = r + (r === 1 ? " row" : " rows");
+      rs.appendChild(p);
+    }
+    cs.value = (keepC >= 1 && keepC <= mc) ? keepC : mc;
+    rs.value = (keepR >= 1 && keepR <= mr) ? keepR : mr;
+  }
+
   // Position the fixed-aspect crop box; fit image to cover it.
   function layoutCrop() {
     if (!img) return;
@@ -117,6 +149,7 @@
     zoom = 1; offX = 0; offY = 0;
     Mint.el("zoomRange").value = 100;
     Mint.el("zoomLabel").textContent = "100%";
+    buildSheetOptions();
     paint();
   }
 
@@ -178,14 +211,15 @@
       x.fillRect(0, 0, tw, th);
       x.drawImage(img, sx, sy, sw, sh, 0, 0, tw, th);
 
-      // 4x6" print sheet at 300 DPI = 1200x1800 px
-      var sheetW = 1200, sheetHpx = 1800;
+      // 4x6" print sheet at 300 DPI, user-chosen grid, centered
+      var sheetW = SHEET_W, sheetHpx = SHEET_H;
       var sh2 = document.createElement("canvas");
       sh2.width = sheetW; sh2.height = sheetHpx;
       var sx2 = sh2.getContext("2d");
       sx2.fillStyle = "#ffffff";
       sx2.fillRect(0, 0, sheetW, sheetHpx);
-      var cols = Math.floor(sheetW / tw), rows = Math.floor(sheetHpx / th);
+      var cols = Math.min(maxSheetCols(), parseInt(Mint.el("sheetCols").value, 10) || 1);
+      var rows = Math.min(maxSheetRows(), parseInt(Mint.el("sheetRows").value, 10) || 1);
       var gx = (sheetW - cols * tw) / 2, gy = (sheetHpx - rows * th) / 2;
       for (var r = 0; r < rows; r++) {
         for (var q = 0; q < cols; q++) {
@@ -195,7 +229,8 @@
 
       Mint.el("singleImg").src = c.toDataURL("image/png");
       Mint.el("sheetImg").src = sh2.toDataURL("image/png");
-      Mint.el("sheetNote").textContent = cols * rows + " copies on a 4×6″ sheet — print at 100% scale (300 DPI).";
+      Mint.el("sheetNote").textContent = (cols * rows) + " " + ((cols * rows) === 1 ? "copy" : "copies") +
+        " (" + cols + "×" + rows + ") on a 4×6″ sheet — print at 100% scale (300 DPI).";
 
       c.toBlob(function (b1) {
         sh2.toBlob(function (b2) {
