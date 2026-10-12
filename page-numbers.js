@@ -23,6 +23,29 @@
     return { x: x, y: y };
   }
 
+  function toRoman(n) {
+    var table = [[1000, "m"], [900, "cm"], [500, "d"], [400, "cd"], [100, "c"], [90, "xc"],
+                 [50, "l"], [40, "xl"], [10, "x"], [9, "ix"], [5, "v"], [4, "iv"], [1, "i"]];
+    var s = "";
+    for (var i = 0; i < table.length && n > 0; i++) {
+      while (n >= table[i][0]) { s += table[i][1]; n -= table[i][0]; }
+    }
+    return s || String(n);
+  }
+
+  function toAlpha(n) {
+    var s = "";
+    while (n > 0) { n--; s = String.fromCharCode(65 + (n % 26)) + s; n = Math.floor(n / 26); }
+    return s || "A";
+  }
+
+  function hexToRgb(hex) {
+    var h = hex.replace("#", "");
+    if (h.length === 3) h = h[0] + h[0] + h[1] + h[1] + h[2] + h[2];
+    var v = parseInt(h, 16);
+    return PDFLib.rgb(((v >> 16) & 255) / 255, ((v >> 8) & 255) / 255, (v & 255) / 255);
+  }
+
   Mint.setupDropzone("dropzone", {
     input: fileInput,
     accept: "application/pdf,.pdf",
@@ -111,10 +134,12 @@
     numberBtn.disabled = true;
 
     var scope = document.querySelector('input[name="scope"]:checked').value;
+    var skipFirst = scope === "all" && Mint.el("skipFirst").checked;
     var indices;
     if (scope === "all") {
       indices = [];
-      for (var i = 0; i < pageCount; i++) indices.push(i);
+      var first = skipFirst ? 1 : 0;
+      for (var i = first; i < pageCount; i++) indices.push(i);
     } else {
       try {
         indices = Mint.parsePageRanges(Mint.el("rangeInput").value, pageCount).map(function (p) { return p - 1; });
@@ -130,14 +155,18 @@
     var format = Mint.el("formatSel").value;
     var size = parseInt(Mint.el("sizeRange").value, 10);
     var pos = selectedPos;
+    var bold = Mint.el("boldCheck").checked;
+    var color = hexToRgb(Mint.el("colorSel").value || "#475569");
 
     Mint.setProgress("progressWrap", 20, "Adding page numbers…");
     PDFLib.PDFDocument.load(fileBytes).then(function (doc) {
-      return doc.embedFont(PDFLib.StandardFonts.Helvetica).then(function (font) {
+      return doc.embedFont(bold ? PDFLib.StandardFonts.HelveticaBold : PDFLib.StandardFonts.Helvetica).then(function (font) {
         indices.forEach(function (idx, k) {
-          var num = start + k;
+          var num = start + (scope === "all" ? idx : k);
           var text = format === "n" ? String(num) :
             format === "nTotal" ? num + " / " + pageCount :
+            format === "roman" ? toRoman(num) :
+            format === "alpha" ? toAlpha(num) :
             "Page " + num;
           var tw = font.widthOfTextAtSize(text, size);
           var page = doc.getPage(idx);
@@ -147,7 +176,7 @@
             y: xy.y,
             size: size,
             font: font,
-            color: PDFLib.rgb(0.28, 0.33, 0.41)
+            color: color
           });
         });
         return doc.save();
