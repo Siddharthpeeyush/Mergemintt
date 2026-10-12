@@ -132,9 +132,10 @@
     var cbx = cropBox.offsetLeft, cby = cropBox.offsetTop;
     var cx = cbx + cbW / 2, cy = cby + cbH / 2;
     var ix = cx - dw / 2 + offX, iy = cy - dh / 2 + offY;
-    // clamp
-    ix = Math.min(cbx + cbW - dw, Math.max(cbx, ix));
-    iy = Math.min(cby + cbH - dh, Math.max(cby, iy));
+    // clamp so the crop box always stays covered by the image:
+    // image-left must stay within [cropRight - imgW, cropLeft]
+    ix = Math.min(cbx, Math.max(cbx + cbW - dw, ix));
+    iy = Math.min(cby, Math.max(cby + cbH - dh, iy));
     offX = ix - (cx - dw / 2);
     offY = iy - (cy - dh / 2);
     stageImg.style.width = dw + "px";
