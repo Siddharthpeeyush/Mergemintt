@@ -12,7 +12,13 @@
   var fileBytes = null;
   var pageCount = 0;
   var resultBlob = null;
-  var selPos = "br";
+
+  /* visual position editor: signature CENTER as page fractions */
+  var PDFJS_CDN = "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.min.js";
+  var WORKER_CDN = "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.worker.min.js";
+  var sigCX = 0.72, sigCY = 0.78;
+  var pagePtW = 0, pagePtH = 0, previewScale = 1;
+  var draggingSig = false;
 
   var fileInput = Mint.el("fileInput");
   var fileList = Mint.el("fileList");
@@ -34,19 +40,114 @@
     onFiles: function (fs) { addFile(fs[0]); }
   });
 
-  /* ---------- position picker ---------- */
-  var posCells = document.querySelectorAll("#posGrid .pos-cell");
-  posCells.forEach(function (c) {
-    if (c.getAttribute("data-pos") === selPos) c.classList.add("selected");
-    c.addEventListener("click", function () {
-      selPos = c.getAttribute("data-pos");
-      posCells.forEach(function (x) { x.classList.toggle("selected", x === c); });
+  /* ---------- visual position editor ---------- */
+  function ensurePdfJs() {
+    if (typeof pdfjsLib !== "undefined") {
+      pdfjsLib.GlobalWorkerOptions.workerSrc = WORKER_CDN;
+      return Promise.resolve();
+    }
+    return Mint.loadScript(PDFJS_CDN).then(function () {
+      pdfjsLib.GlobalWorkerOptions.workerSrc = WORKER_CDN;
     });
-  });
+  }
 
-  Mint.el("sizeRange").addEventListener("input", function () {
-    Mint.el("sigSizeLabel").textContent = Mint.el("sizeRange").value;
-  });
+  function previewPageNum() {
+    var n = parseInt(Mint.el("pageInput").value, 10);
+    return (isNaN(n) || n < 1) ? 1 : Math.min(n, pageCount || 1);
+  }
+
+  function isTypeMode() {
+    return document.querySelector('input[name="sigmode"]:checked').value === "type";
+  }
+
+  function typedSigDataURL(scale) {
+    var name = Mint.el("sigName").value.trim() || "Your Name";
+    var font = Mint.el("sigFont").value;
+    var family = font === "cursive" ? "'Segoe Script','Brush Script MT','Apple Chancery',cursive"
+      : font === "serif" ? "Georgia,'Times New Roman',serif" : "Verdana,Geneva,sans-serif";
+    var c = document.createElement("canvas");
+    c.width = Math.round(600 * scale); c.height = Math.round(220 * scale);
+    var x = c.getContext("2d");
+    x.fillStyle = "#1e293b";
+    var fs = 96 * scale;
+    x.font = fs + "px " + family;
+    x.textBaseline = "middle";
+    var w = x.measureText(name).width;
+    if (w > 560 * scale) { fs = fs * 560 * scale / w; x.font = fs + "px " + family; }
+    x.fillText(name, 20 * scale, 115 * scale);
+    return c.toDataURL("image/png");
+  }
+
+  function sigOverlayURL() {
+    if (isTypeMode()) return typedSigDataURL(0.5);
+    if (!padReady || !hasDrawn) return null;
+    return pad.toDataURL("image/png");
+  }
+
+  function sigDrawSize() {
+    var sizePct = (parseInt(Mint.el("sizeRange").value, 10) || 100) / 100;
+    var aspect = (pad.width || 600) / (pad.height || 220);
+    var dw = BASE_SIG_WIDTH * sizePct;
+    return { w: dw, h: dw / aspect };
+  }
+
+  function paintSigOverlay() {
+    var ov = Mint.el("signOverlay"), img = Mint.el("signOverlayImg");
+    if (!ov || !img || !pagePtW) return;
+    var url = sigOverlayURL();
+    img.style.display = url ? "" : "none";
+    if (url) img.src = url;
+    var d = sigDrawSize();
+    img.style.width = Math.max(24, Math.round(d.w * previewScale)) + "px";
+    ov.style.left = (sigCX * 100) + "%";
+    ov.style.top = (sigCY * 100) + "%";
+    ov.style.transform = "translate(-50%,-50%)";
+  }
+
+  function renderPreview() {
+    if (!fileBytes) return Promise.resolve();
+    var n = previewPageNum();
+    return ensurePdfJs().then(function () {
+      return pdfjsLib.getDocument({ data: fileBytes.slice(0) }).promise;
+    }).then(function (pdfDoc) {
+      return pdfDoc.getPage(n);
+    }).then(function (page) {
+      var vp1 = page.getViewport({ scale: 1 });
+      pagePtW = vp1.width; pagePtH = vp1.height;
+      var scale = Math.min(1.5, 560 / vp1.width);
+      var vp = page.getViewport({ scale: scale });
+      previewScale = scale;
+      var canvas = Mint.el("signPreviewCanvas");
+      canvas.width = Math.floor(vp.width);
+      canvas.height = Math.floor(vp.height);
+      return page.render({ canvasContext: canvas.getContext("2d"), viewport: vp }).promise;
+    }).then(function () {
+      paintSigOverlay();
+    }).catch(function (e) {
+      if (window.console) console.warn("Sign preview failed:", e && e.message);
+    });
+  }
+
+  (function initSigDrag() {
+    var ov = Mint.el("signOverlay"), stage = Mint.el("signStage");
+    if (!ov || !stage) return;
+    ov.addEventListener("pointerdown", function (e) {
+      draggingSig = true;
+      try { ov.setPointerCapture(e.pointerId); } catch (err) {}
+      e.preventDefault();
+    });
+    ov.addEventListener("pointermove", function (e) {
+      if (!draggingSig) return;
+      var r = stage.getBoundingClientRect();
+      sigCX = Math.min(0.98, Math.max(0.02, (e.clientX - r.left) / r.width));
+      sigCY = Math.min(0.98, Math.max(0.02, (e.clientY - r.top) / r.height));
+      ov.style.left = (sigCX * 100) + "%";
+      ov.style.top = (sigCY * 100) + "%";
+    });
+    ["pointerup", "pointercancel"].forEach(function (t) {
+      ov.addEventListener(t, function () { draggingSig = false; });
+    });
+  })();
 
   /* ---------- signature pad ---------- */
   function initPad() {
@@ -88,7 +189,7 @@
     padCtx.stroke();
   });
 
-  function endStroke() { drawing = false; }
+  function endStroke() { drawing = false; paintSigOverlay(); }
   pad.addEventListener("pointerup", endStroke);
   pad.addEventListener("pointercancel", endStroke);
   pad.addEventListener("pointerleave", endStroke);
@@ -107,6 +208,7 @@
       Mint.el("drawBox").style.display = isType ? "none" : "";
       Mint.el("typeBox").style.display = isType ? "" : "none";
       if (isType) updateSigPreview();
+      paintSigOverlay();
     });
   });
 
@@ -118,8 +220,13 @@
     prev.style.fontFamily = font === "cursive" ? "'Segoe Script','Brush Script MT',cursive"
       : font === "serif" ? "Georgia,'Times New Roman',serif" : "Verdana,Geneva,sans-serif";
   }
-  Mint.el("sigName").addEventListener("input", updateSigPreview);
-  Mint.el("sigFont").addEventListener("change", updateSigPreview);
+  Mint.el("sigName").addEventListener("input", function () { updateSigPreview(); paintSigOverlay(); });
+  Mint.el("sigFont").addEventListener("change", function () { updateSigPreview(); paintSigOverlay(); });
+  Mint.el("sizeRange").addEventListener("input", function () {
+    Mint.el("sigSizeLabel").textContent = Mint.el("sizeRange").value;
+    paintSigOverlay();
+  });
+  Mint.el("pageInput").addEventListener("change", renderPreview);
 
   function typedSigPngBytes() {
     return new Promise(function (resolve, reject) {
@@ -171,6 +278,7 @@
         signBtn.disabled = false;
         resetResult();
         Mint.hideProgress("progressWrap");
+        renderPreview();
       });
     }).catch(function (err) {
       Mint.hideProgress("progressWrap");
@@ -188,14 +296,6 @@
     signBtn.disabled = true;
     resetResult();
     Mint.hideAlert("alertBox");
-  }
-
-  /* PDF origin is bottom-left; (w,h) = page size, (dw,dh) = signature size. */
-  function sigXY(pos, w, h, dw, dh) {
-    var col = pos.charAt(1), row = pos.charAt(0);
-    var x = col === "l" ? MARGIN : col === "c" ? (w - dw) / 2 : w - dw - MARGIN;
-    var y = row === "t" ? h - MARGIN - dh : row === "m" ? (h - dh) / 2 : MARGIN;
-    return { x: x, y: y };
   }
 
   function padToPngBytes() {
@@ -236,12 +336,12 @@
           return out.copyPages(src, indices).then(function (pages) {
             pages.forEach(function (p) { out.addPage(p); });
             return out.embedPng(pngBytes).then(function (img) {
-              var aspect = pad.width / pad.height;
-              var drawW = BASE_SIG_WIDTH * sizePct;
-              var drawH = drawW / aspect;
+              var d = sigDrawSize();
               var page = out.getPage(pageNum - 1);
-              var pos = sigXY(selPos, page.getWidth(), page.getHeight(), drawW, drawH);
-              page.drawImage(img, { x: pos.x, y: pos.y, width: drawW, height: drawH });
+              // drag position: signature center as page fractions
+              var x = sigCX * page.getWidth() - d.w / 2;
+              var y = (1 - sigCY) * page.getHeight() - d.h / 2;
+              page.drawImage(img, { x: x, y: y, width: d.w, height: d.h });
               return out.save();
             });
           });

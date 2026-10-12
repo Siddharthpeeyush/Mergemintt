@@ -76,18 +76,12 @@
           <input type="range" id="sizeRange" min="50" max="200" value="100">
         </div>
       </div>
-      <label>Position on page</label>
-      <div class="pos-grid" id="posGrid" role="radiogroup" aria-label="Position on page">
-        <button type="button" class="pos-cell" data-pos="tl" aria-label="Top left">↖</button>
-        <button type="button" class="pos-cell" data-pos="tc" aria-label="Top center">↑</button>
-        <button type="button" class="pos-cell" data-pos="tr" aria-label="Top right">↗</button>
-        <button type="button" class="pos-cell" data-pos="ml" aria-label="Middle left">←</button>
-        <button type="button" class="pos-cell" data-pos="mc" aria-label="Middle center">●</button>
-        <button type="button" class="pos-cell" data-pos="mr" aria-label="Middle right">→</button>
-        <button type="button" class="pos-cell" data-pos="bl" aria-label="Bottom left">↙</button>
-        <button type="button" class="pos-cell" data-pos="bc" aria-label="Bottom center">↓</button>
-        <button type="button" class="pos-cell" data-pos="br" aria-label="Bottom right">↘</button>
+      <label>Position — drag the signature on the page preview</label>
+      <div class="wm-stage" id="signStage">
+        <canvas id="signPreviewCanvas"></canvas>
+        <div class="wm-overlay" id="signOverlay"><img id="signOverlayImg" alt="signature"></div>
       </div>
+      <p class="hint">Drag the signature where you want it. The preview follows the page number above.</p>
     </div>
     <div class="alert" id="alertBox"></div>
     <div class="action-row">
