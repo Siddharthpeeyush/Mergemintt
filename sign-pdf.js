@@ -100,6 +100,52 @@
     Mint.hideAlert("alertBox");
   });
 
+  /* ---------- typed signature ---------- */
+  document.querySelectorAll('input[name="sigmode"]').forEach(function (r) {
+    r.addEventListener("change", function () {
+      var isType = document.querySelector('input[name="sigmode"]:checked').value === "type";
+      Mint.el("drawBox").style.display = isType ? "none" : "";
+      Mint.el("typeBox").style.display = isType ? "" : "none";
+      if (isType) updateSigPreview();
+    });
+  });
+
+  function updateSigPreview() {
+    var name = Mint.el("sigName").value.trim() || "Your Name";
+    var font = Mint.el("sigFont").value;
+    var prev = Mint.el("sigPreview");
+    prev.textContent = name;
+    prev.style.fontFamily = font === "cursive" ? "'Segoe Script','Brush Script MT',cursive"
+      : font === "serif" ? "Georgia,'Times New Roman',serif" : "Verdana,Geneva,sans-serif";
+  }
+  Mint.el("sigName").addEventListener("input", updateSigPreview);
+  Mint.el("sigFont").addEventListener("change", updateSigPreview);
+
+  function typedSigPngBytes() {
+    return new Promise(function (resolve, reject) {
+      var name = Mint.el("sigName").value.trim();
+      if (!name) { reject(new Error("Please type your name for the signature.")); return; }
+      var font = Mint.el("sigFont").value;
+      var family = font === "cursive" ? "'Segoe Script','Brush Script MT','Apple Chancery',cursive"
+        : font === "serif" ? "Georgia,'Times New Roman',serif" : "Verdana,Geneva,sans-serif";
+      var c = document.createElement("canvas");
+      c.width = 600; c.height = 220;
+      var x = c.getContext("2d");
+      x.fillStyle = "#1e293b";
+      x.font = "96px " + family;
+      x.textBaseline = "middle";
+      // shrink to fit
+      var w = x.measureText(name).width;
+      if (w > 560) { x.font = Math.floor(96 * 560 / w) + "px " + family; }
+      x.fillText(name, 20, 115);
+      c.toBlob(function (b) {
+        if (!b) { reject(new Error("Could not create your signature.")); return; }
+        b.arrayBuffer().then(function (buf) { resolve(new Uint8Array(buf)); },
+          function () { reject(new Error("Could not create your signature.")); });
+      }, "image/png");
+    });
+  }
+
   /* ---------- file handling ---------- */
   function addFile(f) {
     Mint.hideAlert("alertBox");
@@ -168,7 +214,8 @@
   /* ---------- sign ---------- */
   signBtn.addEventListener("click", function () {
     if (!fileBytes) return;
-    if (!hasDrawn) { Mint.showAlert("alertBox", "error", "Please draw your signature first."); return; }
+    var isType = document.querySelector('input[name="sigmode"]:checked').value === "type";
+    if (!isType && !hasDrawn) { Mint.showAlert("alertBox", "error", "Please draw your signature first."); return; }
     var pageNum = parseInt(Mint.el("pageInput").value, 10);
     if (isNaN(pageNum) || pageNum < 1 || pageNum > pageCount) {
       Mint.showAlert("alertBox", "error", "Enter a page number between 1 and " + pageCount + ".");
@@ -180,7 +227,7 @@
     signBtn.disabled = true;
     Mint.setProgress("progressWrap", 20, "Placing signature…");
 
-    padToPngBytes().then(function (pngBytes) {
+    (isType ? typedSigPngBytes() : padToPngBytes()).then(function (pngBytes) {
       return PDFLib.PDFDocument.load(fileBytes.slice(0), { ignoreEncryption: true }).then(function (src) {
         if (src.isEncrypted) throw new Error("This PDF is password-protected. Please upload a copy without password protection.");
         return PDFLib.PDFDocument.create().then(function (out) {
