@@ -33,10 +33,11 @@
     mergeBtn.disabled = files.length < 2;
   }
 
+  var dragIdx = -1;
   function renderList() {
     fileList.innerHTML = "";
     files.forEach(function (f, i) {
-      fileList.appendChild(Mint.fileRow(f, i, {
+      var li = Mint.fileRow(f, i, {
         onUp: function (idx) { Mint.moveInArray(files, idx, -1); renderList(); },
         onDown: function (idx) { Mint.moveInArray(files, idx, 1); renderList(); },
         onRemove: function (idx) {
@@ -44,7 +45,40 @@
           renderList(); resetResult();
           mergeBtn.disabled = files.length < 2;
         }
-      }));
+      });
+      // drag-reorder: grab the handle (or the row) and drop onto another row
+      li.draggable = true;
+      li.dataset.idx = i;
+      var handle = document.createElement("span");
+      handle.className = "drag-handle";
+      handle.textContent = "⋮⋮";
+      handle.title = "Drag to reorder";
+      li.insertBefore(handle, li.firstChild);
+      li.addEventListener("dragstart", function (e) {
+        dragIdx = parseInt(li.dataset.idx, 10);
+        e.dataTransfer.effectAllowed = "move";
+        try { e.dataTransfer.setData("text/plain", String(dragIdx)); } catch (err) {}
+        setTimeout(function () { li.classList.add("dragging"); }, 0);
+      });
+      li.addEventListener("dragend", function () {
+        li.classList.remove("dragging");
+        dragIdx = -1;
+      });
+      li.addEventListener("dragover", function (e) {
+        e.preventDefault();
+        e.dataTransfer.dropEffect = "move";
+      });
+      li.addEventListener("drop", function (e) {
+        e.preventDefault();
+        var to = parseInt(li.dataset.idx, 10);
+        if (dragIdx >= 0 && dragIdx !== to) {
+          var moved = files.splice(dragIdx, 1)[0];
+          files.splice(to, 0, moved);
+          renderList();
+          resetResult();
+        }
+      });
+      fileList.appendChild(li);
     });
   }
 
