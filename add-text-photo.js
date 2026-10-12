@@ -8,6 +8,7 @@
   var tx = 0.5, ty = 0.85;   // text center as fractions
   var dragging = false;
   var resultBlob = null;
+  var objUrl = null;       // blob URL for the stage preview (revoked on reset/new file)
 
   var fileInput = Mint.el("fileInput");
   var fileList = Mint.el("fileList");
@@ -60,24 +61,26 @@
     var im = new Image();
     im.onload = function () {
       file = f; img = im;
-      URL.revokeObjectURL(url);
+      if (objUrl) URL.revokeObjectURL(objUrl);
+      objUrl = url;
       fileList.innerHTML = "";
       fileList.appendChild(Mint.fileRow(file, 0, { onRemove: resetAll }));
       pageInfo.style.display = "";
       pageInfo.textContent = "🖼️ “" + file.name + "” — " + im.naturalWidth + "×" + im.naturalHeight + " px.";
-      stageImg.src = im.src;
+      stageImg.src = objUrl;
       optionsBox.style.display = "";
       addBtn.disabled = false;
       resultBox.style.display = "none";
       tx = 0.5; ty = 0.85;
       paint();
     };
-    im.onerror = function () { Mint.showAlert("alertBox", "error", "Could not read that image."); };
+    im.onerror = function () { URL.revokeObjectURL(url); Mint.showAlert("alertBox", "error", "Could not read that image."); };
     im.src = url;
   }
 
   function resetAll() {
     file = null; img = null; resultBlob = null;
+    if (objUrl) { URL.revokeObjectURL(objUrl); objUrl = null; }
     fileList.innerHTML = "";
     pageInfo.style.display = "none";
     optionsBox.style.display = "none";
