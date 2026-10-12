@@ -16,6 +16,106 @@
   var rangeBox = Mint.el("rangeBox");
   var resultBox = Mint.el("resultBox");
 
+  /* ---- visual position editor ---- */
+  var PDFJS_CDN = "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.min.js";
+  var WORKER_CDN = "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.worker.min.js";
+  var wmCX = 0.5, wmCY = 0.5;          // watermark center as page fractions
+  var pagePtW = 0, pagePtH = 0;        // page 1 size in points
+  var previewScale = 1;                // canvas px per point
+  var wmImgObjUrl = null;              // overlay image object URL
+  var draggingWm = false;
+
+  function ensurePdfJs() {
+    if (typeof pdfjsLib !== "undefined") {
+      pdfjsLib.GlobalWorkerOptions.workerSrc = WORKER_CDN;
+      return Promise.resolve();
+    }
+    return Mint.loadScript(PDFJS_CDN).then(function () {
+      pdfjsLib.GlobalWorkerOptions.workerSrc = WORKER_CDN;
+    });
+  }
+
+  function renderPreview() {
+    if (!fileBytes) return Promise.resolve();
+    return ensurePdfJs().then(function () {
+      return pdfjsLib.getDocument({ data: fileBytes.slice(0) }).promise;
+    }).then(function (pdfDoc) {
+      return pdfDoc.getPage(1);
+    }).then(function (page) {
+      var vp1 = page.getViewport({ scale: 1 });
+      pagePtW = vp1.width; pagePtH = vp1.height;
+      var targetW = 560;
+      var scale = Math.min(1.5, targetW / vp1.width);
+      var vp = page.getViewport({ scale: scale });
+      previewScale = scale;
+      var canvas = Mint.el("wmPreview");
+      canvas.width = Math.floor(vp.width);
+      canvas.height = Math.floor(vp.height);
+      return page.render({ canvasContext: canvas.getContext("2d"), viewport: vp }).promise;
+    }).then(function () {
+      paintOverlay();
+    }).catch(function (e) { if (window.console) console.warn('Watermark preview failed:', e && e.message); });
+  }
+
+  function paintOverlay() {
+    var ov = Mint.el("wmOverlay");
+    var stage = Mint.el("wmStage");
+    if (!pagePtW || !stage) return;
+    var wmType = document.querySelector('input[name="wmtype"]:checked').value;
+    var size = parseInt(Mint.el("sizeRange").value, 10) || 60;
+    var opacity = (parseInt(Mint.el("opacityRange").value, 10) || 30) / 100;
+    var rotation = parseInt(Mint.el("rotRange").value, 10) || 0;
+    var color = Mint.el("wmColor").value || "#8b9096";
+    ov.style.left = (wmCX * 100) + "%";
+    ov.style.top = (wmCY * 100) + "%";
+    ov.style.transform = "translate(-50%,-50%) rotate(" + rotation + "deg)";
+    ov.style.opacity = opacity;
+    if (wmType === "image" && wmImageFile) {
+      if (!wmImgObjUrl) wmImgObjUrl = URL.createObjectURL(wmImageFile);
+      ov.innerHTML = "";
+      var im = document.createElement("img");
+      im.src = wmImgObjUrl;
+      im.alt = "Watermark image";
+      // match export sizing: max 70% of page, scaled by size/60
+      im.style.width = Math.round(pagePtW * 0.7 * (size / 60) * previewScale) + "px";
+      ov.appendChild(im);
+    } else {
+      if (wmImgObjUrl) { URL.revokeObjectURL(wmImgObjUrl); wmImgObjUrl = null; }
+      var text = Mint.el("wmText").value.trim() || "Watermark";
+      ov.textContent = text;
+      ov.style.fontSize = Math.max(8, Math.round(size * previewScale)) + "px";
+      ov.style.color = color;
+    }
+  }
+
+  (function initWmDrag() {
+    var ov = Mint.el("wmOverlay"), stage = Mint.el("wmStage");
+    if (!ov || !stage) return;
+    ov.addEventListener("pointerdown", function (e) {
+      draggingWm = true;
+      try { ov.setPointerCapture(e.pointerId); } catch (err) {}
+      e.preventDefault();
+    });
+    ov.addEventListener("pointermove", function (e) {
+      if (!draggingWm) return;
+      var r = stage.getBoundingClientRect();
+      wmCX = Math.min(1, Math.max(0, (e.clientX - r.left) / r.width));
+      wmCY = Math.min(1, Math.max(0, (e.clientY - r.top) / r.height));
+      ov.style.left = (wmCX * 100) + "%";
+      ov.style.top = (wmCY * 100) + "%";
+    });
+    ["pointerup", "pointercancel"].forEach(function (t) {
+      ov.addEventListener(t, function () { draggingWm = false; });
+    });
+  })();
+
+  ["wmText", "wmColor"].forEach(function (id) {
+    Mint.el(id).addEventListener("input", paintOverlay);
+  });
+  ["opacityRange", "sizeRange", "rotRange"].forEach(function (id) {
+    Mint.el(id).addEventListener("input", paintOverlay);
+  });
+
   Mint.setupDropzone("dropzone", {
     input: fileInput,
     accept: "application/pdf,.pdf",
@@ -39,11 +139,15 @@
       var isImg = document.querySelector('input[name="wmtype"]:checked').value === "image";
       Mint.el("wmTextRow").style.display = isImg ? "none" : "";
       Mint.el("wmImageRow").style.display = isImg ? "" : "none";
+      if (wmImgObjUrl) { URL.revokeObjectURL(wmImgObjUrl); wmImgObjUrl = null; }
+      paintOverlay();
     });
   });
   Mint.el("wmImage").addEventListener("change", function () {
     wmImageFile = this.files && this.files[0] ? this.files[0] : null;
     Mint.el("wmImageName").textContent = wmImageFile ? wmImageFile.name : "No image chosen";
+    if (wmImgObjUrl) { URL.revokeObjectURL(wmImgObjUrl); wmImgObjUrl = null; }
+    paintOverlay();
   });
 
   function hexToRgb(hex) {
@@ -89,6 +193,8 @@
       watermarkBtn.disabled = false;
       resetResult();
       Mint.hideProgress("progressWrap");
+      wmCX = 0.5; wmCY = 0.5;
+      renderPreview();
     }).catch(function (err) {
       Mint.hideProgress("progressWrap");
       Mint.showAlert("alertBox", "error", err.message || "Could not read this PDF.");
@@ -173,8 +279,8 @@
               var sc = Math.min(maxW / dims.width, maxH / dims.height, 1) * (size / 60);
               var dw = dims.width * sc, dh = dims.height * sc;
               page.drawImage(wmImg.img, {
-                x: (pw - dw) / 2,
-                y: (ph - dh) / 2,
+                x: wmCX * pw - dw / 2,
+                y: (1 - wmCY) * ph - dh / 2,
                 width: dw, height: dh,
                 rotate: PDFLib.degrees(rotation),
                 opacity: opacity
@@ -182,8 +288,8 @@
             } else {
               var tw = font.widthOfTextAtSize(text, size);
               page.drawText(text, {
-                x: (pw - tw) / 2,
-                y: ph / 2,
+                x: wmCX * pw - tw / 2,
+                y: (1 - wmCY) * ph - size * 0.35,
                 size: size,
                 font: font,
                 rotate: PDFLib.degrees(rotation),
