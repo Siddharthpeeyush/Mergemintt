@@ -143,6 +143,8 @@
               } else {
                 var pw = 595.28, ph = 841.89; // A4 portrait
                 if (mode === "a4l") { pw = 841.89; ph = 595.28; }
+                else if (mode === "lep") { pw = 612; ph = 792; }       // Letter portrait
+                else if (mode === "lel") { pw = 792; ph = 612; }       // Letter landscape
                 page = out.addPage([pw, ph]);
                 var sc = Math.min(pw / (item.w * 0.75), ph / (item.h * 0.75));
                 var dw = item.w * 0.75 * sc;
