@@ -1,0 +1,20 @@
+# Netlify cache headers for MergeMint
+# HTML: revalidate often (content changes frequently)
+/*.html
+  Cache-Control: public, max-age=3600, must-revalidate
+/
+  Cache-Control: public, max-age=3600, must-revalidate
+
+# Static assets: cache longer (filenames are stable, updates are infrequent)
+/assets/*
+  Cache-Control: public, max-age=604800, immutable
+/*.css
+  Cache-Control: public, max-age=86400, must-revalidate
+/*.js
+  Cache-Control: public, max-age=86400, must-revalidate
+
+# Sitemap & robots: revalidate often
+/sitemap.xml
+  Cache-Control: public, max-age=3600, must-revalidate
+/robots.txt
+  Cache-Control: public, max-age=3600, must-revalidate
