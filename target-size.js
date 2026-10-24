@@ -223,7 +223,11 @@
       var s1 = document.createElement("div"); s1.className = "stat";
       s1.textContent = "Before: " + Mint.formatBytes(file.size);
       var s2 = document.createElement("div"); s2.className = "stat";
-      s2.textContent = "After: " + Mint.formatBytes(resultBlob.size) + " (" + Math.max(0, Math.round((1 - resultBlob.size / file.size) * 100)) + "% smaller)";
+      if (resultBlob.size <= file.size) {
+        s2.textContent = "After: " + Mint.formatBytes(resultBlob.size) + " (" + Math.round((1 - resultBlob.size / file.size) * 100) + "% smaller)";
+      } else {
+        s2.textContent = "After: " + Mint.formatBytes(resultBlob.size) + " (larger than original — rasterized pages can grow tiny text PDFs)";
+      }
       var s3 = document.createElement("div"); s3.className = "stat";
       s3.textContent = "Target: " + Mint.formatBytes(target) + " — " + (res.hit ? "HIT ✓" : "MISSED");
       Mint.el("statRow").appendChild(s1); Mint.el("statRow").appendChild(s2); Mint.el("statRow").appendChild(s3);
