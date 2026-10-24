@@ -46,11 +46,28 @@
     b.addEventListener("click", onClick);
     return b;
   }
-  function makeLink(label, href, primary) {
+  function makeLink(label, href, primary, carry) {
     var a = document.createElement("a");
     a.className = "qa-btn" + (primary ? " qa-btn-primary" : "");
     a.href = href;
     a.textContent = label;
+    if (carry) {
+      /* Carry the file into the tool: save it locally first, then go.
+         If saving fails, still navigate (old behaviour) rather than
+         trapping the user on the homepage. */
+      a.addEventListener("click", function (e) {
+        if (e.metaKey || e.ctrlKey || e.shiftKey || e.button !== 0) return;
+        if (!currentFile) return;
+        if (!window.Mint || !Mint.saveQuickDrop) return;
+        e.preventDefault();
+        setStatus("Loading your file into the tool…");
+        Mint.saveQuickDrop(currentFile).then(function () {
+          window.location.href = href;
+        }).catch(function () {
+          window.location.href = href;
+        });
+      });
+    }
     return a;
   }
 
@@ -191,16 +208,17 @@
       actions.appendChild(makeBtn("Convert to WebP", function () { convertImage("image/webp", "webp", 0.9); }));
       actions.appendChild(makeBtn("Compress", showCompressPanel));
       actions.appendChild(makeBtn("Resize", showResizePanel));
-      actions.appendChild(makeLink("Crop image →", "crop-image.html"));
-      actions.appendChild(makeLink("Remove background →", "bg-remover.html"));
-      actions.appendChild(makeLink("Passport photo →", "passport-photo.html"));
-      actions.appendChild(makeLink("Make a PDF →", "jpg-to-pdf.html"));
-      setStatus("Tip: JPG / PNG / WebP, compress and resize happen right here. Crop, background removal and passport photos open their full tool.");
+      actions.appendChild(makeLink("Crop image →", "crop-image.html", false, true));
+      actions.appendChild(makeLink("Remove background →", "bg-remover.html", false, true));
+      actions.appendChild(makeLink("Passport photo →", "passport-photo.html", false, true));
+      actions.appendChild(makeLink("Make a PDF →", "jpg-to-pdf.html", false, true));
+      setStatus("Tip: JPG / PNG / WebP, compress and resize happen right here. Crop, background removal and passport photos open their full tool — with this file already loaded.");
     } else if (isPdf) {
-      actions.appendChild(makeLink("Merge PDF →", "merge.html", true));
-      actions.appendChild(makeLink("Split PDF →", "split.html"));
-      actions.appendChild(makeLink("Compress PDF →", "compress.html"));
-      setStatus("PDF tools open with an empty workspace — pick this file again there. Your file is never uploaded in any of them.");
+      actions.appendChild(makeLink("Merge PDF →", "merge.html", true, true));
+      actions.appendChild(makeLink("Split PDF →", "split.html", false, true));
+      actions.appendChild(makeLink("Compress PDF →", "compress.html", false, true));
+      actions.appendChild(makeLink("PDF to JPG →", "pdf-to-jpg.html", false, true));
+      setStatus("Your file will open inside the tool you pick — no need to choose it again. It is never uploaded in any of them.");
     } else {
       var browse = document.createElement("a");
       browse.className = "qa-btn qa-btn-primary";
@@ -217,7 +235,7 @@
     currentFile = files[0];
     currentImg = null;
     fileName.textContent = currentFile.name;
-    fileMeta.textContent = fmtSize(currentFile.size) + " · Processed in your browser";
+    fileMeta.textContent = fmtSize(currentFile.size);
     note.textContent = files.length > 1
       ? files.length + " files dropped — using the first one for now."
       : "";

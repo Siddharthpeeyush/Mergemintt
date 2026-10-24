@@ -65,6 +65,16 @@
       var files = Array.prototype.slice.call(e.dataTransfer.files || []);
       if (files.length) opts.onFiles(files);
     });
+
+    /* Homepage quick-drop handoff: the first dropzone on the page picks
+       up a file saved by the homepage, if one is waiting. */
+    if (!quickDropHooked) {
+      quickDropHooked = true;
+      takeQuickDrop().then(function (f) {
+        if (!f) return;
+        try { opts.onFiles([f]); } catch (e) {}
+      });
+    }
   }
 
   function showAlert(boxId, kind, message) {
@@ -183,12 +193,73 @@
     return loadedScripts[src];
   }
 
+  /* ---- Homepage quick-drop handoff (IndexedDB) ----
+     The homepage drop zone saves the picked file here before navigating
+     to a tool page; the tool's dropzone then picks it up automatically,
+     so the file lands inside the tool instead of an empty workspace.
+     Same origin only, never uploaded. Take semantics: reading deletes
+     it, so a refresh does not re-inject the file. */
+  var quickDropDB = null;
+  var quickDropDBPromise = null;
+  var quickDropHooked = false;
+
+  function openQuickDropDB() {
+    if (quickDropDB) return Promise.resolve(quickDropDB);
+    if (quickDropDBPromise) return quickDropDBPromise;
+    quickDropDBPromise = new Promise(function (resolve, reject) {
+      var req;
+      try { req = indexedDB.open("mergemint", 1); }
+      catch (e) { reject(e); return; }
+      req.onupgradeneeded = function () {
+        try { req.result.createObjectStore("quickdrop"); } catch (e) {}
+      };
+      req.onsuccess = function () { quickDropDB = req.result; resolve(quickDropDB); };
+      req.onerror = function () { reject(req.error); };
+    });
+    return quickDropDBPromise;
+  }
+
+  function saveQuickDrop(file) {
+    return openQuickDropDB().then(function (db) {
+      return new Promise(function (resolve, reject) {
+        var tx = db.transaction("quickdrop", "readwrite");
+        tx.objectStore("quickdrop").put({
+          name: file.name, type: file.type,
+          lastModified: file.lastModified, blob: file
+        }, "pending");
+        tx.oncomplete = function () { resolve(); };
+        tx.onerror = function () { reject(tx.error); };
+      });
+    });
+  }
+
+  function takeQuickDrop() {
+    return openQuickDropDB().then(function (db) {
+      return new Promise(function (resolve) {
+        var tx = db.transaction("quickdrop", "readwrite");
+        var store = tx.objectStore("quickdrop");
+        var get = store.get("pending");
+        get.onsuccess = function () {
+          var v = get.result;
+          if (v) { try { store.delete("pending"); } catch (e) {} }
+          if (!v) { resolve(null); return; }
+          try {
+            resolve(new File([v.blob], v.name, { type: v.type, lastModified: v.lastModified }));
+          } catch (e) { resolve(v.blob); }
+        };
+        get.onerror = function () { resolve(null); };
+      });
+    }).catch(function () { return null; });
+  }
+
   window.Mint = {
     el: el,
     formatBytes: formatBytes,
     downloadBlob: downloadBlob,
     readAsArrayBuffer: readAsArrayBuffer,
     setupDropzone: setupDropzone,
+    saveQuickDrop: saveQuickDrop,
+    takeQuickDrop: takeQuickDrop,
     showAlert: showAlert,
     hideAlert: hideAlert,
     setProgress: setProgress,
