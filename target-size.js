@@ -154,7 +154,7 @@
   }
 
   function buildPdf(scale, quality, pdfDoc) {
-    var out = PDFLib.PDFDocument.create();
+    return PDFLib.PDFDocument.create().then(function (out) {
     var chain = Promise.resolve();
     for (var p = 1; p <= pdfDoc.numPages; p++) {
       (function (pageNum) {
@@ -171,6 +171,7 @@
       })(p);
     }
     return chain.then(function () { return out.save(); });
+    });
   }
 
   function shrinkPdf() {

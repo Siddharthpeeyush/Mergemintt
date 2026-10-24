@@ -166,14 +166,15 @@
       if (opts.dups) analysis.dupGroups.forEach(function (g) { g.slice(1).forEach(function (p) { drop[p] = true; }); });
       var keep = [];
       for (var i = 1; i <= src.getPageCount(); i++) { if (!drop[i]) keep.push(i - 1); }
-      var out = PDFLib.PDFDocument.create();
-      return out.copyPages(src, keep).then(function (pages) {
-        pages.forEach(function (p) { out.addPage(p); });
-        if (opts.meta) {
-          out.setTitle(""); out.setAuthor(""); out.setSubject(""); out.setKeywords([]);
-          out.setCreator(""); out.setProducer("");
-        }
-        return out.save();
+      return PDFLib.PDFDocument.create().then(function (out) {
+        return out.copyPages(src, keep).then(function (pages) {
+          pages.forEach(function (p) { out.addPage(p); });
+          if (opts.meta) {
+            out.setTitle(""); out.setAuthor(""); out.setSubject(""); out.setKeywords([]);
+            out.setCreator(""); out.setProducer("");
+          }
+          return out.save();
+        });
       });
     }).then(function (bytes) {
       fixedBlob = new Blob([bytes], { type: "application/pdf" });

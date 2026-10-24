@@ -58,10 +58,11 @@
   }
 
   function saveWithPages(srcDoc, indices) {
-    var out = PDFLib.PDFDocument.create();
-    return out.copyPages(srcDoc, indices).then(function (pages) {
-      pages.forEach(function (p) { out.addPage(p); });
-      return out.save();
+    return PDFLib.PDFDocument.create().then(function (out) {
+      return out.copyPages(srcDoc, indices).then(function (pages) {
+        pages.forEach(function (p) { out.addPage(p); });
+        return out.save();
+      });
     });
   }
 
