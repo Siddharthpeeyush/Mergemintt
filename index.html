@@ -7,7 +7,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>MergeMint — Free Online PDF Tools: Merge, Split, Compress, Convert &amp; More</title>
-  <meta name="description" content="MergeMint offers 17 free tools that run 100% in your browser: merge, split, compress, rotate, watermark, sign and OCR PDFs, convert and resize images, and more. No uploads, no sign-up.">
+  <meta name="description" content="MergeMint offers 30 free tools that run 100% in your browser: merge, split, compress, rotate, watermark, sign and OCR PDFs, convert and resize images, and more. No uploads, no sign-up.">
   <meta property="og:title" content="MergeMint — Free PDF Tools in Your Browser">
   <meta property="og:description" content="Merge, split, compress and convert PDFs for free. All processing happens on your device — nothing is ever uploaded.">
   <meta property="og:type" content="website">
@@ -50,6 +50,31 @@
           <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12.5l5 5L20 6.5"/></svg>Files stay on your device</li>
           <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12.5l5 5L20 6.5"/></svg>No sign-up</li>
         </ul>
+
+        <div class="qa-wrap" id="qaWrap">
+          <div class="qa-dropzone" id="qaDrop" role="button" tabindex="0" aria-label="Drop a file or choose a file to see its actions">
+            <span class="qa-drop-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 16V4M12 4l-4 4M12 4l4 4"/><path d="M4 16v3a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-3"/></svg></span>
+            <p class="qa-drop-title">Drop any file here</p>
+            <p class="qa-drop-sub">or tap to choose a file — its actions appear instantly below. Nothing is uploaded.</p>
+            <input id="qaFile" type="file" hidden aria-label="Choose a file">
+          </div>
+          <div class="qa-card" id="qaCard" hidden>
+            <div class="qa-file">
+              <img class="qa-thumb" id="qaThumb" alt="" style="display:none">
+              <span class="qa-thumb-icon" id="qaThumbIcon" style="display:none" aria-hidden="true"></span>
+              <div class="qa-file-text">
+                <p class="qa-name" id="qaName"></p>
+                <p class="qa-meta" id="qaMeta"></p>
+                <span class="qa-badge">Processed in your browser</span>
+              </div>
+              <button class="qa-clear" id="qaClear" type="button">Choose another file</button>
+            </div>
+            <p class="qa-note" id="qaNote"></p>
+            <div class="qa-actions" id="qaActions"></div>
+            <div class="qa-workspace" id="qaWorkspace"></div>
+            <p class="qa-status" id="qaStatus"></p>
+          </div>
+        </div>
       </section>
 
       <div class="feat-label" id="featLabel">Start with</div>
@@ -114,6 +139,22 @@
               <span class="icon-tile"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M9 6h11M9 12h11M9 18h11"/><circle cx="4.5" cy="6" r="1" fill="currentColor" stroke="none"/><circle cx="4.5" cy="12" r="1" fill="currentColor" stroke="none"/><circle cx="4.5" cy="18" r="1" fill="currentColor" stroke="none"/></svg></span>
               <span><span class="t-name">Page Numbers</span><p class="t-desc">Stamp page numbers onto every page — position, format, start number.</p></span>
             </a>
+            <a class="tool-row" href="organize-pages.html" data-name="organize pages reorder rotate delete pages thumbnails drag" data-cat="organize">
+              <span class="icon-tile"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="8" height="8" rx="1.5"/><rect x="13" y="3" width="8" height="8" rx="1.5"/><rect x="3" y="13" width="8" height="8" rx="1.5"/><rect x="13" y="13" width="8" height="8" rx="1.5"/></svg></span>
+              <span><span class="t-name">Organize Pages</span><p class="t-desc">See every page as a thumbnail. Drag to reorder, rotate or remove pages.</p></span>
+            </a>
+            <a class="tool-row" href="crop-pdf.html" data-name="crop pdf trim margins pages" data-cat="organize">
+              <span class="icon-tile"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M6 2v14a2 2 0 0 0 2 2h14"/><path d="M2 6h14a2 2 0 0 1 2 2v14"/></svg></span>
+              <span><span class="t-name">Crop PDF</span><p class="t-desc">Trim white margins from every page of your PDF.</p></span>
+            </a>
+            <a class="tool-row" href="mix-pdfs.html" data-name="mix pdfs interleave pages two pdfs combine" data-cat="organize">
+              <span class="icon-tile"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="8" width="9" height="13" rx="1.5"/><rect x="12" y="3" width="9" height="13" rx="1.5"/></svg></span>
+              <span><span class="t-name">Mix PDFs</span><p class="t-desc">Interleave the pages of two PDFs — A1, B1, A2, B2…</p></span>
+            </a>
+            <a class="tool-row" href="n-up.html" data-name="n-up pdf multiple pages one sheet handout" data-cat="organize">
+              <span class="icon-tile"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M3 12h18M12 4v16"/></svg></span>
+              <span><span class="t-name">N-Up PDF</span><p class="t-desc">Fit multiple pages onto each sheet — great for handouts.</p></span>
+            </a>
           </div>
         </section>
 
@@ -140,7 +181,7 @@
         </section>
 
         <section class="cat" data-cat="edit">
-          <div class="cat-head"><span class="cat-label">Edit &amp; Sign</span><span class="cat-count">10 tools</span></div>
+          <div class="cat-head"><span class="cat-label">Edit &amp; Sign</span><span class="cat-count">4 tools</span></div>
           <div class="tool-list">
             <a class="tool-row" href="watermark.html" data-name="watermark pdf diagonal text draft confidential" data-cat="edit">
               <span class="icon-tile"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3s6.5 7 6.5 11.5a6.5 6.5 0 0 1-13 0C5.5 10 12 3 12 3z"/></svg></span>
@@ -276,5 +317,6 @@
   </div><!-- /.main-col -->
 </div><!-- /.app -->
 <script src="shell.js"></script>
+<script src="quickdrop.js"></script>
 </body>
 </html>
